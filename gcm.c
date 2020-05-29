@@ -3,7 +3,6 @@
  * @brief chapter gcm samples.
  * @note  测试向量来自 http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmtestvectors.zip
 */
-#include <zephyr.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -86,7 +85,7 @@ int main(void)
     mbedtls_cipher_context_t ctx;
     const mbedtls_cipher_info_t *info;
 
-    mbedtls_platform_set_printf(printf);
+    //mbedtls_platform_set_printf(printf);
 
     mbedtls_cipher_init(&ctx);
     info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_GCM);
@@ -100,17 +99,17 @@ int main(void)
 
     ret = mbedtls_cipher_auth_encrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
                                         pt, sizeof(pt), buf, &len, tag_buf, 16);
-    assert_exit(ret == 0, ret);
-    assert_exit(memcmp(buf, ct, sizeof(ct)) == 0, -1);
-    assert_exit(memcmp(tag_buf, tag, 16) == 0, -1);
+    //assert_exit(ret == 0, ret);
+    //assert_exit(memcmp(buf, ct, sizeof(ct)) == 0, -1);
+    //assert_exit(memcmp(tag_buf, tag, 16) == 0, -1);
     dump_buf("\n  cipher gcm auth encrypt:", buf, 16);
     dump_buf("\n  cipher gcm auth tag:", tag_buf, 16);
 
     mbedtls_cipher_setkey(&ctx, key, sizeof(key)*8, MBEDTLS_DECRYPT);
     ret = mbedtls_cipher_auth_decrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
                                         ct, sizeof(ct), buf, &len, tag, 16);
-    assert_exit(ret == 0, ret);
-    assert_exit(memcmp(buf, pt, sizeof(pt)) == 0, -1);
+    //assert_exit(ret == 0, ret);
+    //assert_exit(memcmp(buf, pt, sizeof(pt)) == 0, -1);
     dump_buf("\n  cipher gcm auth decrypt:", buf, 16);
 
 cleanup:

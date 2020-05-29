@@ -3,7 +3,7 @@
  *  Copyright (c) 2020, Nvidia, All rights reserved.
  */
 
-#if 1	//CALLOC_TEST start
+#if 0	//CALLOC_TEST start
 
 
 #include <string.h>
@@ -22,35 +22,18 @@
 #include "mbedtls/entropy_poll.h"
 #include "mbedtls/hmac_drbg.h"
 #include "mbedtls/ctr_drbg.h"
-#include "mbedtls/dhm.h"
 #include "mbedtls/gcm.h"
-#include "mbedtls/ccm.h"
-#include "mbedtls/cmac.h"
 #include "mbedtls/md2.h"
 #include "mbedtls/md4.h"
 #include "mbedtls/md5.h"
-#include "mbedtls/ripemd160.h"
 #include "mbedtls/sha1.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/sha512.h"
-#include "mbedtls/arc4.h"
-#include "mbedtls/des.h"
 #include "mbedtls/aes.h"
-#include "mbedtls/camellia.h"
-#include "mbedtls/aria.h"
-#include "mbedtls/chacha20.h"
-#include "mbedtls/poly1305.h"
 #include "mbedtls/chachapoly.h"
-#include "mbedtls/base64.h"
 #include "mbedtls/bignum.h"
-#include "mbedtls/rsa.h"
-#include "mbedtls/x509.h"
-#include "mbedtls/xtea.h"
-#include "mbedtls/pkcs5.h"
 #include "mbedtls/ecp.h"
-#include "mbedtls/ecjpake.h"
 #include "mbedtls/timing.h"
-#include "mbedtls/nist_kw.h"
 
 #include <string.h>
 
@@ -534,99 +517,113 @@ tegrabl_error_t tegrabl_spi_open(void)
 
 #else
 
+
 #include <tegrabl_debug.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "mbedtls/cipher.h"
+//#include "mbedtls/platform.h"
 #include <tegrabl_malloc.h>
 #define mbedtls_calloc     tegrabl_calloc
 #define mbedtls_free       tegrabl_free
 #define mbedtls_printf	   tegrabl_printf
 
+#define assert_exit(cond, ret) \
+    do { if (!(cond)) { \
+        printf("  !. assert: failed [line: %d, error: -0x%04X]\n", __LINE__, -ret); \
+        goto cleanup; \
+    } } while (0)
+
+
+static uint8_t key[] =
+{
+    0xc9, 0x39, 0xcc, 0x13, 0x39, 0x7c, 0x1d, 0x37,
+    0xde, 0x6a, 0xe0, 0xe1, 0xcb, 0x7c, 0x42, 0x3c
+};
+
+static uint8_t iv[] =
+{
+    0xb3, 0xd8, 0xcc, 0x01, 0x7c, 0xbb, 0x89, 0xb3,
+    0x9e, 0x0f, 0x67, 0xe2,
+};
+
+static uint8_t pt[] =
+{
+    0xc3, 0xb3, 0xc4, 0x1f, 0x11, 0x3a, 0x31, 0xb7, 
+    0x3d, 0x9a, 0x5c, 0xd4, 0x32, 0x10, 0x30, 0x69
+};
+
+static uint8_t add[] = 
+{
+    0x24, 0x82, 0x56, 0x02, 0xbd, 0x12, 0xa9, 0x84, 
+    0xe0, 0x09, 0x2d, 0x3e, 0x44, 0x8e, 0xda, 0x5f
+};
+
+static uint8_t ct[] =
+{
+    0x93, 0xfe, 0x7d, 0x9e, 0x9b, 0xfd, 0x10, 0x34, 
+    0x8a, 0x56, 0x06, 0xe5, 0xca, 0xfa, 0x73, 0x54
+};
+
+static uint8_t tag[] =
+{
+    0x00, 0x32, 0xa1, 0xdc, 0x85, 0xf1, 0xc9, 0x78, 
+    0x69, 0x25, 0xa2, 0xe7, 0x1d, 0x82, 0x72, 0xdd
+};
+
+static void dump_buf(char *info, uint8_t *buf, uint32_t len)
+{
+    mbedtls_printf("%s", info);
+    for (unsigned int i = 0; i < len; i++) {
+        mbedtls_printf("%s%02X%s", i % 16 == 0 ? "\n     ":" ",
+                        buf[i], i == len - 1 ? "\n":"");
+    }
+}
+
 
 tegrabl_error_t tegrabl_spi_open(void)
 {
 
-tegrabl_printf("==== mbedtls selftest START===\n");
+ 	int ret;
+    size_t len;
+    uint8_t buf[16], tag_buf[16];
 
-	int verbose = 1;
-    int failures = 0;
-    void *empty1 = mbedtls_calloc( 0, 1 );
-    void *empty2 = mbedtls_calloc( 0, 1 );
-    void *buffer1 = mbedtls_calloc( 1, 1 );
-    void *buffer2 = mbedtls_calloc( 1, 1 );
-    uintptr_t old_buffer1;
+    mbedtls_cipher_context_t ctx;
+    const mbedtls_cipher_info_t *info;
 
-    if( empty1 == NULL && empty2 == NULL )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(0): passed (NULL)\n" );
-    }
-    else if( empty1 == NULL || empty2 == NULL )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(0): failed (mix of NULL and non-NULL)\n" );
-        ++failures;
-    }
-    else if( empty1 == empty2 )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(0): passed (same non-null)\n" );
-    }
-    else
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(0): passed (distinct non-null)\n" );
-    }
+    //mbedtls_platform_set_printf(printf);
 
-    if( buffer1 == NULL || buffer2 == NULL )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(1): failed (NULL)\n" );
-        ++failures;
-    }
-    else if( buffer1 == buffer2 )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(1): failed (same buffer twice)\n" );
-        ++failures;
-    }
-    else
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(1): passed\n" );
-    }
+    mbedtls_cipher_init(&ctx);
+    info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_GCM);
 
-    old_buffer1 = (uintptr_t) buffer1;
-    mbedtls_free( buffer1 );
-    buffer1 = mbedtls_calloc( 1, 1 );
-    if( buffer1 == NULL )
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(1 again): failed (NULL)\n" );
-        ++failures;
-    }
-    else
-    {
-        if( verbose )
-            mbedtls_printf( "  CALLOC(1 again): passed (%s address)\n",
-                            (uintptr_t) old_buffer1 == (uintptr_t) buffer1 ?
-                            "same" : "different" );
-    }
+    mbedtls_cipher_setup(&ctx, info);
+    mbedtls_printf("\n  cipher info setup, name: %s, block size: %d\n", 
+                        mbedtls_cipher_get_name(&ctx), 
+                        mbedtls_cipher_get_block_size(&ctx));
 
-tegrabl_printf("==== mbedtls selftest END===\n");
+    mbedtls_cipher_setkey(&ctx, key, sizeof(key)*8, MBEDTLS_ENCRYPT);
 
+    ret = mbedtls_cipher_auth_encrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
+                                        pt, sizeof(pt), buf, &len, tag_buf, 16);
+    assert_exit(ret == 0, ret);
+    assert_exit(memcmp(buf, ct, sizeof(ct)) == 0, -1);
+    assert_exit(memcmp(tag_buf, tag, 16) == 0, -1);
+    dump_buf("\n  cipher gcm auth encrypt:", buf, 16);
+    dump_buf("\n  cipher gcm auth tag:", tag_buf, 16);
 
-    if( verbose )
-        mbedtls_printf( "\n" );
-    mbedtls_free( empty1 );
-    mbedtls_free( empty2 );
-    mbedtls_free( buffer1 );
-    mbedtls_free( buffer2 );
-    return( failures );
+    mbedtls_cipher_setkey(&ctx, key, sizeof(key)*8, MBEDTLS_DECRYPT);
+    ret = mbedtls_cipher_auth_decrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
+                                        ct, sizeof(ct), buf, &len, tag, 16);
+    assert_exit(ret == 0, ret);
+    assert_exit(memcmp(buf, pt, sizeof(pt)) == 0, -1);                                                                                                           
+    dump_buf("\n  cipher gcm auth decrypt:", buf, 16);
+
+cleanup:
+    mbedtls_cipher_free(&ctx);
+
+	return 0;
+
 }
-
-
-
-
 
 #endif //CALLOC_TEST end
