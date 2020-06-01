@@ -3,7 +3,7 @@
  *  Copyright (c) 2020, Nvidia, All rights reserved.
  */
 
-#if 0	//CALLOC_TEST start
+#if 0
 
 
 #include <string.h>
@@ -523,11 +523,15 @@ tegrabl_error_t tegrabl_spi_open(void)
 #include <stdlib.h>
 #include <string.h>
 #include "mbedtls/cipher.h"
-//#include "mbedtls/platform.h"
+#include "mbedtls/md.h"
+#include "mbedtls/ecdh.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/ctr_drbg.h"
 #include <tegrabl_malloc.h>
-#define mbedtls_calloc     tegrabl_calloc
-#define mbedtls_free       tegrabl_free
-#define mbedtls_printf	   tegrabl_printf
+#include <sys/time.h>
+
+
+extern time_t tegrabl_get_timestamp_us(void);
 
 #define assert_exit(cond, ret) \
     do { if (!(cond)) { \
@@ -580,31 +584,50 @@ static void dump_buf(char *info, uint8_t *buf, uint32_t len)
                         buf[i], i == len - 1 ? "\n":"");
     }
 }
+static int entropy_source(void *data, uint8_t *output, size_t len, size_t *olen)
+{
+    uint32_t seed;
+
+    //seed = sys_rand32_get();
+	//time_t t = tegrabl_get_timestamp_us();  // get uptime in nanoseconds
+  	// tv->tv_sec = t / 1000000;  // convert to seconds
+
+	srand( (unsigned int) tegrabl_get_timestamp_us() );
+	seed = rand(); //| rand();	// 32bits of rand num
+    if (len > sizeof(seed)) {
+        len = sizeof(seed);
+    }
+
+    memcpy(output, &seed, len);
+
+    *olen = len;
+    return 0;
+}
 
 
 tegrabl_error_t tegrabl_spi_open(void)
 {
-
- 	int ret;
+	//
+	// 1. AES-128-GCM
+	//
+ 	int ret=0;
     size_t len;
     uint8_t buf[16], tag_buf[16];
 
-    mbedtls_cipher_context_t ctx;
-    const mbedtls_cipher_info_t *info;
+    mbedtls_cipher_context_t c_ctx;
+    const mbedtls_cipher_info_t *gcm_info;
 
-    //mbedtls_platform_set_printf(printf);
+    mbedtls_cipher_init(&c_ctx);
+    gcm_info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_GCM);
 
-    mbedtls_cipher_init(&ctx);
-    info = mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_GCM);
-
-    mbedtls_cipher_setup(&ctx, info);
+    mbedtls_cipher_setup(&c_ctx, gcm_info);
     mbedtls_printf("\n  cipher info setup, name: %s, block size: %d\n", 
-                        mbedtls_cipher_get_name(&ctx), 
-                        mbedtls_cipher_get_block_size(&ctx));
+                        mbedtls_cipher_get_name(&c_ctx), 
+                        mbedtls_cipher_get_block_size(&c_ctx));
 
-    mbedtls_cipher_setkey(&ctx, key, sizeof(key)*8, MBEDTLS_ENCRYPT);
+    mbedtls_cipher_setkey(&c_ctx, key, sizeof(key)*8, MBEDTLS_ENCRYPT);
 
-    ret = mbedtls_cipher_auth_encrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
+    ret = mbedtls_cipher_auth_encrypt(&c_ctx, iv, sizeof(iv), add, sizeof(add),
                                         pt, sizeof(pt), buf, &len, tag_buf, 16);
     assert_exit(ret == 0, ret);
     assert_exit(memcmp(buf, ct, sizeof(ct)) == 0, -1);
@@ -612,18 +635,125 @@ tegrabl_error_t tegrabl_spi_open(void)
     dump_buf("\n  cipher gcm auth encrypt:", buf, 16);
     dump_buf("\n  cipher gcm auth tag:", tag_buf, 16);
 
-    mbedtls_cipher_setkey(&ctx, key, sizeof(key)*8, MBEDTLS_DECRYPT);
-    ret = mbedtls_cipher_auth_decrypt(&ctx, iv, sizeof(iv), add, sizeof(add),
+    mbedtls_cipher_setkey(&c_ctx, key, sizeof(key)*8, MBEDTLS_DECRYPT);
+    ret = mbedtls_cipher_auth_decrypt(&c_ctx, iv, sizeof(iv), add, sizeof(add),
                                         ct, sizeof(ct), buf, &len, tag, 16);
     assert_exit(ret == 0, ret);
     assert_exit(memcmp(buf, pt, sizeof(pt)) == 0, -1);                                                                                                           
     dump_buf("\n  cipher gcm auth decrypt:", buf, 16);
 
+//cleanup_1:
+    mbedtls_cipher_free(&c_ctx);
+
+	//
+	// 2. HMAC-SHA256
+	//
+
+    uint8_t mac[32];
+    char *secret = "Jefe";
+    char *msg = "what do ya want for nothing?";
+
+    mbedtls_md_context_t ctx;
+    const mbedtls_md_info_t *info;
+
+    //mbedtls_platform_set_printf(printf);
+
+    mbedtls_md_init(&ctx);
+    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+
+    mbedtls_md_setup(&ctx, info, 1);
+    mbedtls_printf("\n  md info setup, name: %s, digest size: %d\n", 
+                   mbedtls_md_get_name(info), mbedtls_md_get_size(info));
+
+    mbedtls_md_hmac_starts(&ctx, (const unsigned char *)secret, strlen(secret));
+    mbedtls_md_hmac_update(&ctx, (const unsigned char *)msg, strlen(msg));
+    mbedtls_md_hmac_finish(&ctx, mac);
+
+    dump_buf("\n  md hmac-sha-256 mac:", mac, sizeof(mac));
+
+    mbedtls_md_free(&ctx);
+
+	//
+	// 3. ECDH (SECP256R1)
+	//
+
+	//int ret = 0;
+	ret = 0;
+    size_t olen;
+    char buf2[65];
+    mbedtls_ecp_group grp;
+    mbedtls_mpi cli_secret, srv_secret;
+    mbedtls_mpi cli_pri, srv_pri;
+    mbedtls_ecp_point cli_pub, srv_pub;
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    //uint8_t *pers = "simple_ecdh";
+	char *pers = "simple_ecdh";
+    
+    //mbedtls_platform_set_printf(printf);
+
+    mbedtls_mpi_init(&cli_pri); 
+    mbedtls_mpi_init(&srv_pri);
+    mbedtls_mpi_init(&cli_secret); 
+    mbedtls_mpi_init(&srv_secret);
+    mbedtls_ecp_group_init(&grp);
+    mbedtls_ecp_point_init(&cli_pub); 
+    mbedtls_ecp_point_init(&srv_pub);
+    mbedtls_entropy_init(&entropy); 
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+
+    mbedtls_entropy_add_source(&entropy, entropy_source, NULL,
+                       MBEDTLS_ENTROPY_MAX_GATHER, MBEDTLS_ENTROPY_SOURCE_STRONG);
+    mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, 
+                                (const uint8_t *) pers, strlen((const char *) pers));
+    mbedtls_printf("\n  . setup rng ... ok\n");
+
+    ret = mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
+    mbedtls_printf("\n  . select ecp group SECP256R1 ... ok\n");
+
+    ret = mbedtls_ecdh_gen_public(&grp, &cli_pri, &cli_pub, 
+                                    mbedtls_ctr_drbg_random, &ctr_drbg);
+    assert_exit(ret == 0, ret);
+    mbedtls_ecp_point_write_binary(&grp, &cli_pub, 
+                            MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, (uint8_t *)buf2, sizeof(buf2));
+    dump_buf("  1. ecdh client generate public parameter:",(uint8_t *) buf2, olen);
+
+    ret = mbedtls_ecdh_gen_public(&grp, &srv_pri, &srv_pub, 
+                                    mbedtls_ctr_drbg_random, &ctr_drbg);
+    assert_exit(ret == 0, ret);
+    mbedtls_ecp_point_write_binary(&grp, &srv_pub, 
+                            MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, (uint8_t *)buf2, sizeof(buf2));
+    dump_buf("  2. ecdh server generate public parameter:", (uint8_t *)buf2, olen);
+
+    ret = mbedtls_ecdh_compute_shared(&grp, &cli_secret, &srv_pub, &cli_pri, 
+                                        mbedtls_ctr_drbg_random, &ctr_drbg);
+    assert_exit(ret == 0, ret);
+    mbedtls_mpi_write_binary(&cli_secret, (uint8_t *)buf2, mbedtls_mpi_size(&cli_secret));
+    dump_buf("  3. ecdh client generate secret:", (uint8_t *)buf2, mbedtls_mpi_size(&cli_secret));
+
+    ret = mbedtls_ecdh_compute_shared(&grp, &srv_secret, &cli_pub, &srv_pri, 
+                                        mbedtls_ctr_drbg_random, &ctr_drbg);
+    assert_exit(ret == 0, ret);
+    mbedtls_mpi_write_binary(&srv_secret, (uint8_t *)buf2, mbedtls_mpi_size(&srv_secret));
+    dump_buf("  4. ecdh server generate secret:", (uint8_t *)buf2, mbedtls_mpi_size(&srv_secret));
+
+    ret = mbedtls_mpi_cmp_mpi(&cli_secret, &srv_secret);
+    assert_exit(ret == 0, ret);
+    mbedtls_printf("  5. ecdh checking secrets ... ok\n");
+
 cleanup:
-    mbedtls_cipher_free(&ctx);
+    mbedtls_mpi_free(&cli_pri); 
+    mbedtls_mpi_free(&srv_pri);
+    mbedtls_mpi_free(&cli_secret); 
+    mbedtls_mpi_free(&srv_secret);
+    mbedtls_ecp_group_free(&grp);
+    mbedtls_ecp_point_free(&cli_pub); 
+    mbedtls_ecp_point_free(&srv_pub);
+    mbedtls_entropy_free(&entropy); 
+    mbedtls_ctr_drbg_free(&ctr_drbg);
 
 	return 0;
 
 }
 
-#endif //CALLOC_TEST end
+#endif

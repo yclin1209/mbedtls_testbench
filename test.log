@@ -1,0 +1,436 @@
+entering main console loop
+[0001.340] I> 23) Base:0xe8ae0000 Size:0x00020000
+[0001.345] I> 24) Base:0xee000000 Size:0x02000000
+[0001.349] I> 25) Base:0x40050000 Size:0x00002000
+[0001.354] I> 26) Base:0x40040000 Size:0x00006000
+[0001.358] I> 27) Base:0xe9800000 Size:0x00400000
+[0001.362] I> 28) Base:0xecc00000 Size:0x01400000
+[0001.367] I> 29) Base:0xe9400000 Size:0x00400000
+[0001.371] I> 30) Base:0x00000000 Size:0x00000000
+[0001.376] I> 31) Base:0x00000000 Size:0x00000000
+[0001.380] I> 32) Base:0xf8000000 Size:0x08000000
+[0001.385] I> 33) Base:0xf0000000 Size:0x08000000
+[0001.389] I> 34) Base:0xebc00000 Size:0x01000000
+[0001.394] I> 35) Base:0xaa000000 Size:0x01000000
+[0001.398] I> 36) Base:0xa0000000 Size:0x0a000000
+[0001.403] I> 37) Base:0xea800000 Size:0x00800000
+[0001.407] I> 38) Base:0x80000000 Size:0x20000000
+[0001.412] I> 39) Base:0xb0000000 Size:0x08000000
+[0001.416] I> 40) Base:0x00000000 Size:0x00000000
+[0001.420] I> 41) Base:0x00000000 Size:0x00000000
+[0001.425] I> 42) Base:0x00000000 Size:0x00000000
+[0001.429] I> 43) Base:0x00000000 Size:0x00000000
+[0001.434] I> 44) Base:0x00000000 Size:0x00000000
+[0001.438] I> 45) Base:0x00000000 Size:0x00000000
+[0001.443] GIC-SPI Target CPU: 0
+[0001.446] Interrupts Init done
+[0001.449] calling constructors
+[0001.452] initializing heap
+[0001.454] I> Heap: [0xa067eb68 ... 0xaa000000]
+[0001.458] initializing threads
+[0001.461] initializing timers
+[0001.464] creating bootstrap completion thread
+[0001.468] top of bootstrap2()
+[0001.471] CPU: MIDR: 0x4E0F0040, MPIDR: 0x80000000
+[0001.476] initializing platform
+[0001.479] E> DEVICE_PROD: Invalid value data = 0, size = 0.
+[0001.484] W> device prod register failed
+[0001.488] I> Bl_dtb @0xa9f00000
+[0001.491] I> gpio framework initialized
+[0001.501] I> tegrabl_gpio_driver_register: register 'nvidia,tegra194-gpio' driver
+[0001.506] I> tegrabl_gpio_driver_register: register 'nvidia,tegra194-gpio-aon' driver
+[0001.510] I> tegrabl_tca9539_init: i2c bus: 1, slave addr: 0x46
+[0001.520] E> fetch_driver_phandle_from_dt: failed to get node with compatible ti,tca9539
+[0001.527] E> fetch_driver_phandle_from_dt: failed to get node with compatible nxp,tca9539
+[0001.532] W> tegrabl_tca9539_init: failed to fetch phandle from dt
+[0001.538] I> tegrabl_tca9539_init: i2c bus: 1, slave addr: 0x44
+[0001.547] E> fetch_driver_phandle_from_dt: failed to get node with compatible ti,tca9539
+[0001.554] E> fetch_driver_phandle_from_dt: failed to get node with compatible nxp,tca9539
+[0001.559] W> tegrabl_tca9539_init: failed to fetch phandle from dt
+[0001.568] I> fixed regulator driver initialized
+[0001.588] I> register 'maxim' power off handle
+[0001.589] I> virtual i2c enabled
+[0001.589] I> registered 'maxim,max20024' pmic
+[0001.590] I> tegrabl_gpio_driver_register: register 'max20024-gpio' driver
+[0001.590] I> Boot-device: eMMC
+[0001.591] I> Boot_device: SDMMC_BOOT instance: 3
+[0001.595] E> Failed: Unknown device 0
+[0001.599] E> Failed: Unknown device 1
+[0001.603] E> "plugin-manager" doesn't exist, creating
+[0001.607] E> "ids" doesn't exist, creating
+[0001.612] E> "connection" doesn't exist, creating
+[0001.616] E> "configs" doesn't exist, creating
+[0001.623] I> Find /i2c@3160000's alias i2c0
+[0001.624] I> Reading eeprom i2c=0 address=0x50
+[0001.654] I> Device at /i2c@3160000:0x50
+[0001.654] I> Reading eeprom i2c=0 address=0x56
+[0001.678] I> Device at /i2c@3160000:0x56
+[0001.680] I> Find /i2c@3180000's alias i2c2
+[0001.680] I> Reading eeprom i2c=2 address=0x54
+[0001.682] E> I2C: slave not found in slaves.
+[0001.682] E> I2C: Could not write 0 bytes to slave: 0x00a8 with repeat start true.
+[0001.683] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.684] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa8 at 0x00000000 via instance 2.
+[0001.693] E> eeprom: Failed to read I2C slave device
+[0001.697] I> Eeprom read failed 0x3526070d
+[0001.701] I> Reading eeprom i2c=2 address=0x57
+[0001.706] E> I2C: slave not found in slaves.
+[0001.710] E> I2C: Could not write 0 bytes to slave: 0x00ae with repeat start true.
+[0001.718] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.723] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xae at 0x00000000 via instance 2.
+[0001.733] E> eeprom: Failed to read I2C slave device
+[0001.737] I> Eeprom read failed 0x3526070d
+[0001.741] I> Reading eeprom i2c=2 address=0x52
+[0001.746] E> I2C: slave not found in slaves.
+[0001.750] E> I2C: Could not write 0 bytes to slave: 0x00a4 with repeat start true.
+[0001.758] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.763] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa4 at 0x00000000 via instance 2.
+[0001.773] E> eeprom: Failed to read I2C slave device
+[0001.777] I> Eeprom read failed 0x3526070d
+[0001.782] I> Find /i2c@c240000's alias i2c1
+[0001.785] I> Reading eeprom i2c=1 address=0x52
+[0001.791] E> I2C: slave not found in slaves.
+[0001.794] E> I2C: Could not write 0 bytes to slave: 0x00a4 with repeat start true.
+[0001.802] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.807] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa4 at 0x00000000 via instance 1.
+[0001.817] E> eeprom: Retry to read I2C slave device.
+[0001.822] E> I2C: slave not found in slaves.
+[0001.826] E> I2C: Could not write 0 bytes to slave: 0x00a4 with repeat start true.
+[0001.834] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.839] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa4 at 0x00000000 via instance 1.
+[0001.849] E> eeprom: Failed to read I2C slave device
+[0001.853] I> Eeprom read failed 0x3526070d
+[0001.857] I> Reading eeprom i2c=1 address=0x50
+[0001.862] E> I2C: slave not found in slaves.
+[0001.866] E> I2C: Could not write 0 bytes to slave: 0x00a0 with repeat start true.
+[0001.874] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.879] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa0 at 0x00000000 via instance 1.
+[0001.889] E> eeprom: Retry to read I2C slave device.
+[0001.894] E> I2C: slave not found in slaves.
+[0001.898] E> I2C: Could not write 0 bytes to slave: 0x00a0 with repeat start true.
+[0001.906] E> I2C_DEV: Failed to send register address 0x00000000.
+[0001.911] E> I2C_DEV: Could not read 256 registers of size 1 from slave 0xa0 at 0x00000000 via instance 1.
+[0001.921] E> eeprom: Failed to read I2C slave device
+[0001.925] I> Eeprom read failed 0x3526070d
+[0001.929] I> create_pm_ids: id: 2888-0001-400-J, len: 15
+[0001.934] I> config: mem-type:00,power-config:00,misc-config:00,modem-config:00,touch-config:00,display-config:00,, len: 93
+[0001.945] I> create_pm_ids: id: 2822-0000-600-D, len: 15
+[0001.951] I> config: mem-type:00,power-config:00,misc-config:00,modem-config:00,touch-config:00,display-config:00,, len: 93
+[0001.962] I> Adding plugin-manager/ids/2888-0001-400=/i2c@3160000:module@0x50
+[0001.969] E> "i2c@3160000" doesn't exist, creating
+[0001.973] E> "module@0x50" doesn't exist, creating
+[0001.978] I> Adding plugin-manager/ids/2822-0000-600=/i2c@3160000:module@0x56
+[0001.985] E> "module@0x56" doesn't exist, creating
+[0001.991] I> Adding plugin-manager/cvm
+[0001.994] E> "chip-id" doesn't exist, creating
+[0001.997] I> Adding plugin-manager/chip-id/A02
+[0002.002] I> Plugin-manager override starting
+[0002.007] I> node /plugin-manager/fragement-tegra-wdt-en matches
+[0002.015] I> node /plugin-manager/fragement-soft-wdt matches
+[0002.022] I> node /plugin-manager/fragment-pcie-c5-rp matches
+[0002.026] I> node /plugin-manager/fragment-tegra-ufs-lane10 matches
+[0002.034] I> node /plugin-manager/fragment-p2888@0 matches
+[0002.046] I> Disable plugin-manager status in FDT
+[0002.047] I> Plugin-manager override finished successfully
+[0002.059] I> enabling 'vdd-hdmi-5v0' regulator
+[0002.065] I> regulator 'vdd-hdmi-5v0' already enabled
+[0002.065] E> tegrabl_display_init_regulator: hdmi cable is not connected
+[0002.066] E> tegrabl_display_get_pdata, failed to parse dtb settings
+[0002.071] E> invalid display type
+[0002.075] E> invalid display type
+[0002.077] E> cannot find any other nvdisp nodes
+[0002.077] E> no valid display unit config found in dtb
+[0002.083] W> display init failed
+[0002.085] I> Load in CBoot Boot Options partition and parse it
+[0002.091] E> Cannot find partition CPUBL-CFG
+[0002.095] E> tegrabl_read_cbo: Failed to open CPUBL-CFG partition
+[0002.101] W> platform_init: tegrabl_read_cbo failed with error 0xd0d000d
+[0002.107] I> Hit any key to stop autoboot:	4	3	2	1
+[0004.115] initializing target
+[0004.115] === YC SPI test start ===
+[0004.116]              cipher info setup, name: AES-128-GCM, block size: 16
+[0004.116]              cipher gcm auth encrypt:
+[0004.117]  93
+[0004.117]  fe
+[0004.117]  7d
+[0004.117]  9e
+[0004.117]  9b
+[0004.117]  fd
+[0004.117]  10
+[0004.117]  34
+[0004.117]  8a
+[0004.117]  56
+[0004.118]  06
+[0004.119]  e5
+[0004.120]  ca
+[0004.122]  fa
+[0004.123]  73
+[0004.124]  54
+[0004.125]              cipher gcm auth tag:
+[0004.128]  00
+[0004.130]  32
+[0004.131]  a1
+[0004.133]  dc
+[0004.134]  85
+[0004.135]  f1
+[0004.136]  c9
+[0004.137]  78
+[0004.139]  69
+[0004.140]  25
+[0004.141]  a2
+[0004.142]  e7
+[0004.144]  1d
+[0004.145]  82
+[0004.146]  72
+[0004.147]  dd
+[0004.149]              cipher gcm auth decrypt:
+[0004.152]  c3
+[0004.154]  b3
+[0004.155]  c4
+[0004.156]  1f
+[0004.157]  11
+[0004.158]  3a
+[0004.160]  31
+[0004.161]  b7
+[0004.162]  3d
+[0004.163]  9a
+[0004.165]  5c
+[0004.166]  d4
+[0004.167]  32
+[0004.168]  10
+[0004.170]  30
+[0004.171]  69
+[0004.171]   md info setup, name: SHA256, digest size: 32
+[0004.176]   md hmac-sha-256 mac:
+[0004.179]  5b
+[0004.181]  dc
+[0004.182]  c1
+[0004.183]  46
+[0004.185]  bf
+[0004.186]  60
+[0004.187]  75
+[0004.188]  4e
+[0004.190]  6a
+[0004.191]  04
+[0004.192]  24
+[0004.193]  26
+[0004.195]  08
+[0004.196]  95
+[0004.197]  75
+[0004.198]  c7
+[0004.199]  5a
+[0004.201]  00
+[0004.202]  3f
+[0004.204]  08
+[0004.205]  9d
+[0004.206]  27
+[0004.207]  39
+[0004.208]  83
+[0004.210]  9d
+[0004.211]  ec
+[0004.212]  58
+[0004.213]  b9
+[0004.215]  64
+[0004.216]  ec
+[0004.217]  38
+[0004.218]  43
+[0004.220]              . setup rng ... ok
+[0004.223]              . select ecp group SECP256R1 ... ok
+[0004.255]   1. ecdh client generate public parameter:
+[0004.256]  04
+[0004.256]  c2
+[0004.256]  03
+[0004.256]  61
+[0004.256]  0c
+[0004.256]  01
+[0004.256]  d7
+[0004.256]  8e
+[0004.256]  f6
+[0004.257]  f3
+[0004.257]  64
+[0004.257]  f7
+[0004.257]  7a
+[0004.257]  c3
+[0004.257]  89
+[0004.257]  0d
+[0004.257]  4c
+[0004.257]  b1
+[0004.258]  b5
+[0004.259]  a2
+[0004.260]  74
+[0004.261]  e7
+[0004.263]  46
+[0004.264]  e8
+[0004.265]  e6
+[0004.266]  5f
+[0004.268]  3e
+[0004.269]  d1
+[0004.270]  38
+[0004.271]  64
+[0004.272]  4e
+[0004.274]  2e
+[0004.275]  6a
+[0004.277]  f1
+[0004.278]  43
+[0004.279]  ab
+[0004.280]  e2
+[0004.282]  9a
+[0004.283]  c6
+[0004.284]  59
+[0004.285]  90
+[0004.286]  5c
+[0004.288]  4a
+[0004.289]  7c
+[0004.290]  93
+[0004.291]  5d
+[0004.293]  c2
+[0004.294]  11
+[0004.295]  85
+[0004.297]  6e
+[0004.298]  09
+[0004.299]  fd
+[0004.300]  00
+[0004.302]  16
+[0004.303]  5d
+[0004.304]  30
+[0004.305]  db
+[0004.306]  54
+[0004.308]  47
+[0004.309]  c5
+[0004.310]  aa
+[0004.311]  d2
+[0004.313]  4d
+[0004.314]  2f
+[0004.315]  f1
+[0004.325]   2. ecdh server generate public parameter:
+[0004.325]  04
+[0004.325]  5c
+[0004.325]  db
+[0004.326]  a9
+[0004.327]  17
+[0004.328]  f8
+[0004.329]  f5
+[0004.331]  2b
+[0004.332]  7d
+[0004.333]  9c
+[0004.334]  d4
+[0004.335]  4d
+[0004.337]  80
+[0004.338]  d4
+[0004.339]  6c
+[0004.340]  eb
+[0004.342]  d0
+[0004.343]  23
+[0004.345]  6b
+[0004.346]  7d
+[0004.347]  27
+[0004.348]  c5
+[0004.349]  9c
+[0004.351]  47
+[0004.352]  76
+[0004.353]  49
+[0004.354]  3b
+[0004.356]  74
+[0004.357]  d5
+[0004.358]  a5
+[0004.359]  76
+[0004.360]  8e
+[0004.362]  bc
+[0004.367]  51
+[0004.368]  78
+[0004.369]  a1
+[0004.371]  ec
+[0004.372]  33
+[0004.373]  2e
+[0004.374]  da
+[0004.376]  e6
+[0004.377]  0b
+[0004.378]  fb
+[0004.379]  0a
+[0004.380]  5a
+[0004.382]  d1
+[0004.383]  1d
+[0004.385]  2e
+[0004.386]  b5
+[0004.387]  67
+[0004.388]  34
+[0004.389]  55
+[0004.391]  fc
+[0004.392]  21
+[0004.393]  2c
+[0004.394]  45
+[0004.396]  28
+[0004.397]  7d
+[0004.398]  12
+[0004.399]  82
+[0004.401]  68
+[0004.402]  67
+[0004.426]   3. ecdh client generate secret:
+[0004.426]  af
+[0004.426]  3b
+[0004.427]  6f
+[0004.427]  61
+[0004.427]  cf
+[0004.427]  e2
+[0004.427]  cd
+[0004.427]  61
+[0004.427]  d0
+[0004.427]  ac
+[0004.427]  29
+[0004.427]  ef
+[0004.428]  6e
+[0004.428]  f9
+[0004.428]  1c
+[0004.428]  ef
+[0004.428]  dc
+[0004.429]  c4
+[0004.430]  12
+[0004.432]  7c
+[0004.433]  02
+[0004.434]  ef
+[0004.435]  69
+[0004.436]  76
+[0004.438]  ef
+[0004.439]  3d
+[0004.440]  d0
+[0004.441]  88
+[0004.443]  a3
+[0004.444]  f2
+[0004.445]  07
+[0004.446]  64
+[0004.470]   4. ecdh server generate secret:
+[0004.470]  af
+[0004.471]  3b
+[0004.471]  6f
+[0004.471]  61
+[0004.471]  cf
+[0004.471]  e2
+[0004.471]  cd
+[0004.471]  61
+[0004.471]  d0
+[0004.471]  ac
+[0004.471]  29
+[0004.472]  ef
+[0004.472]  6e
+[0004.472]  f9
+[0004.472]  1c
+[0004.472]  ef
+[0004.472]  dc
+[0004.473]  c4
+[0004.474]  12
+[0004.476]  7c
+[0004.477]  02
+[0004.478]  ef
+[0004.479]  69
+[0004.481]  76
+[0004.482]  ef
+[0004.483]  3d
+[0004.484]  d0
+[0004.485]  88
+[0004.487]  a3
+[0004.488]  f2
+[0004.489]  07
+[0004.490]  64
+[0004.492]   5. ecdh checking secrets ... ok
+[0004.496] === YC SPI test end ===
+[0004.499] !!!=YC for testing - Disable apps_init() =!!!

@@ -5,15 +5,15 @@
  * This file has been machine generated using the script:
  * generate_test_code.py
  *
- * Test file      : ./test_suite_hkdf.c
+ * Test file      : ./test_suite_ecdh.c
  *
  * The following files were used to create this file.
  *
  *      Main code file      : /home/mp600/mbedtls/tests/suites/main_test.function
  *      Platform code file  : /home/mp600/mbedtls/tests/suites/host_test.function
  *      Helper file         : /home/mp600/mbedtls/tests/suites/helpers.function
- *      Test suite file     : /home/mp600/mbedtls/tests/suites/test_suite_hkdf.function
- *      Test suite data     : /home/mp600/mbedtls/tests/suites/test_suite_hkdf.data
+ *      Test suite file     : /home/mp600/mbedtls/tests/suites/test_suite_ecdh.function
+ *      Test suite data     : /home/mp600/mbedtls/tests/suites/test_suite_ecdh.data
  *
  *
  *  This file is part of Mbed TLS (https://tls.mbed.org)
@@ -789,201 +789,663 @@ int hexcmp( uint8_t * a, uint8_t * b, uint32_t a_len, uint32_t b_len )
 
 #define TEST_SUITE_ACTIVE
 
-#if defined(MBEDTLS_HKDF_C)
-#line 2 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-#include "mbedtls/hkdf.h"
-#line 11 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-void test_test_hkdf( int md_alg, char *hex_ikm_string, char *hex_salt_string,
-                char *hex_info_string, char *hex_okm_string )
+#if defined(MBEDTLS_ECDH_C)
+#line 2 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+#include "mbedtls/ecdh.h"
+
+static int load_public_key( int grp_id, data_t *point,
+                            mbedtls_ecp_keypair *ecp )
 {
-    int ret;
-    size_t ikm_len, salt_len, info_len, okm_len;
-    unsigned char ikm[128] = { '\0' };
-    unsigned char salt[128] = { '\0' };
-    unsigned char info[128] = { '\0' };
-    unsigned char expected_okm[128] = { '\0' };
-    unsigned char okm[128] = { '\0' };
-    /*
-     * okm_hex is the string representation of okm,
-     * so its size is twice the size of okm, and an extra null-termination.
-     */
-    unsigned char okm_hex[257] = { '\0' };
+    int ok = 0;
+    TEST_ASSERT( mbedtls_ecp_group_load( &ecp->grp, grp_id ) == 0 );
+    TEST_ASSERT( mbedtls_ecp_point_read_binary( &ecp->grp,
+                                                &ecp->Q,
+                                                point->x,
+                                                point->len ) == 0 );
+    TEST_ASSERT( mbedtls_ecp_check_pubkey( &ecp->grp,
+                                           &ecp->Q ) == 0 );
+    ok = 1;
+exit:
+    return( ok );
+}
 
-    mbedtls_md_handle_t md = mbedtls_md_info_from_type( md_alg );
-    TEST_ASSERT( md != MBEDTLS_MD_INVALID_HANDLE );
+static int load_private_key( int grp_id, data_t *private_key,
+                             mbedtls_ecp_keypair *ecp,
+                             rnd_pseudo_info *rnd_info )
+{
+    int ok = 0;
+    TEST_ASSERT( mbedtls_ecp_group_load( &ecp->grp, grp_id ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_binary( &ecp->d,
+                                          private_key->x,
+                                          private_key->len ) == 0 );
+    TEST_ASSERT( mbedtls_ecp_check_privkey( &ecp->grp, &ecp->d ) == 0 );
+    /* Calculate the public key from the private key. */
+    TEST_ASSERT( mbedtls_ecp_mul( &ecp->grp, &ecp->Q, &ecp->d,
+                                  &ecp->grp.G,
+                                  &rnd_pseudo_rand, rnd_info ) == 0 );
+    ok = 1;
+exit:
+    return( ok );
+}
 
-    ikm_len = unhexify( ikm, hex_ikm_string );
-    salt_len = unhexify( salt, hex_salt_string );
-    info_len = unhexify( info, hex_info_string );
-    okm_len = unhexify( expected_okm, hex_okm_string );
-
-    ret = mbedtls_hkdf( md, salt, salt_len, ikm, ikm_len, info, info_len, okm,
-                        okm_len);
-    TEST_ASSERT( ret == 0 );
-
-    // Run hexify on it so that it looks nicer if the assertion fails
-    hexify( okm_hex, okm, okm_len );
-    TEST_ASSERT( !strcmp( (char *)okm_hex, hex_okm_string ) );
+#line 47 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_valid_param( )
+{
+    TEST_VALID_PARAM( mbedtls_ecdh_free( NULL ) );
 exit:
     ;
 }
 
-void test_test_hkdf_wrapper( void ** params )
+void test_ecdh_valid_param_wrapper( void ** params )
+{
+    (void)params;
+
+    test_ecdh_valid_param(  );
+}
+#if defined(MBEDTLS_CHECK_PARAMS)
+#if !defined(MBEDTLS_PARAM_FAILED_ALT)
+#line 54 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_invalid_param( )
+{
+    mbedtls_ecp_group grp;
+    mbedtls_ecdh_context ctx;
+    mbedtls_mpi m;
+    mbedtls_ecp_point P;
+    mbedtls_ecp_keypair kp;
+    size_t olen;
+    unsigned char buf[42] = { 0 };
+    const unsigned char *buf_null = NULL;
+    size_t const buflen = sizeof( buf );
+    int invalid_side = 42;
+    mbedtls_ecp_group_id valid_grp = MBEDTLS_ECP_DP_SECP192R1;
+
+    TEST_INVALID_PARAM( mbedtls_ecdh_init( NULL ) );
+
+#if defined(MBEDTLS_ECP_RESTARTABLE)
+    TEST_INVALID_PARAM( mbedtls_ecdh_enable_restart( NULL ) );
+#endif /* MBEDTLS_ECP_RESTARTABLE */
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_gen_public( NULL, &m, &P,
+                                                     rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_gen_public( &grp, NULL, &P,
+                                                     rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_gen_public( &grp, &m, NULL,
+                                                     rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_gen_public( &grp, &m, &P,
+                                                     NULL, NULL ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_compute_shared( NULL, &m, &P, &m,
+                                                         rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_compute_shared( &grp, NULL, &P, &m,
+                                                         rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_compute_shared( &grp, &m, NULL, &m,
+                                                         rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_compute_shared( &grp, &m, &P, NULL,
+                                                         rnd_std_rand, NULL ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_setup( NULL, valid_grp ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_params( NULL, &olen,
+                                                      buf, buflen,
+                                                      rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_params( &ctx, NULL,
+                                                      buf, buflen,
+                                                      rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_params( &ctx, &olen,
+                                                      NULL, buflen,
+                                                      rnd_std_rand, NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_params( &ctx, &olen,
+                                                      buf, buflen,
+                                                      NULL, NULL ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_params( NULL,
+                                                  (const unsigned char**) &buf,
+                                                  buf ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_params( &ctx, &buf_null,
+                                                      buf ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_params( &ctx, NULL, buf ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_params( &ctx,
+                                                  (const unsigned char**) &buf,
+                                                  NULL ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_get_params( NULL, &kp,
+                                                     MBEDTLS_ECDH_OURS ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_get_params( &ctx, NULL,
+                                                     MBEDTLS_ECDH_OURS ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_get_params( &ctx, &kp,
+                                                     invalid_side ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_public( NULL, &olen,
+                                                      buf, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_public( &ctx, NULL,
+                                                      buf, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_public( &ctx, &olen,
+                                                      NULL, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_make_public( &ctx, &olen,
+                                                      buf, buflen,
+                                                      NULL,
+                                                      NULL ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_public( NULL, buf, buflen ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_read_public( &ctx, NULL, buflen ) );
+
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_calc_secret( NULL, &olen, buf, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_calc_secret( &ctx, NULL, buf, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+    TEST_INVALID_PARAM_RET( MBEDTLS_ERR_ECP_BAD_INPUT_DATA,
+                            mbedtls_ecdh_calc_secret( &ctx, &olen, NULL, buflen,
+                                                      rnd_std_rand,
+                                                      NULL ) );
+
+exit:
+    return;
+}
+
+void test_ecdh_invalid_param_wrapper( void ** params )
+{
+    (void)params;
+
+    test_ecdh_invalid_param(  );
+}
+#endif /* !MBEDTLS_PARAM_FAILED_ALT */
+#endif /* MBEDTLS_CHECK_PARAMS */
+#line 189 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_primitive_random( int id )
+{
+    mbedtls_ecp_group grp;
+    mbedtls_ecp_point qA, qB;
+    mbedtls_mpi dA, dB, zA, zB;
+    rnd_pseudo_info rnd_info;
+
+    mbedtls_ecp_group_init( &grp );
+    mbedtls_ecp_point_init( &qA ); mbedtls_ecp_point_init( &qB );
+    mbedtls_mpi_init( &dA ); mbedtls_mpi_init( &dB );
+    mbedtls_mpi_init( &zA ); mbedtls_mpi_init( &zB );
+    memset( &rnd_info, 0x00, sizeof( rnd_pseudo_info ) );
+
+    TEST_ASSERT( mbedtls_ecp_group_load( &grp, id ) == 0 );
+
+    TEST_ASSERT( mbedtls_ecdh_gen_public( &grp, &dA, &qA, &rnd_pseudo_rand, &rnd_info )
+                 == 0 );
+    TEST_ASSERT( mbedtls_ecdh_gen_public( &grp, &dB, &qB, &rnd_pseudo_rand, &rnd_info )
+                 == 0 );
+    TEST_ASSERT( mbedtls_ecdh_compute_shared( &grp, &zA, &qB, &dA,
+                                      &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_compute_shared( &grp, &zB, &qA, &dB,
+                                      NULL, NULL ) == 0 );
+
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &zA, &zB ) == 0 );
+
+exit:
+    mbedtls_ecp_group_free( &grp );
+    mbedtls_ecp_point_free( &qA ); mbedtls_ecp_point_free( &qB );
+    mbedtls_mpi_free( &dA ); mbedtls_mpi_free( &dB );
+    mbedtls_mpi_free( &zA ); mbedtls_mpi_free( &zB );
+}
+
+void test_ecdh_primitive_random_wrapper( void ** params )
 {
 
-    test_test_hkdf( *( (int *) params[0] ), (char *) params[1], (char *) params[2], (char *) params[3], (char *) params[4] );
+    test_ecdh_primitive_random( *( (int *) params[0] ) );
 }
-#line 46 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-void test_test_hkdf_extract( int md_alg, char *hex_ikm_string,
-                        char *hex_salt_string, char *hex_prk_string )
+#line 224 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_primitive_testvec( int id, data_t * rnd_buf_A, char * xA_str,
+                             char * yA_str, data_t * rnd_buf_B,
+                             char * xB_str, char * yB_str, char * z_str )
+{
+    mbedtls_ecp_group grp;
+    mbedtls_ecp_point qA, qB;
+    mbedtls_mpi dA, dB, zA, zB, check;
+    rnd_buf_info rnd_info_A, rnd_info_B;
+
+    mbedtls_ecp_group_init( &grp );
+    mbedtls_ecp_point_init( &qA ); mbedtls_ecp_point_init( &qB );
+    mbedtls_mpi_init( &dA ); mbedtls_mpi_init( &dB );
+    mbedtls_mpi_init( &zA ); mbedtls_mpi_init( &zB ); mbedtls_mpi_init( &check );
+
+    TEST_ASSERT( mbedtls_ecp_group_load( &grp, id ) == 0 );
+
+    rnd_info_A.buf = rnd_buf_A->x;
+    rnd_info_A.length = rnd_buf_A->len;
+
+    /* Fix rnd_buf_A->x by shifting it left if necessary */
+    if( grp.nbits % 8 != 0 )
+    {
+        unsigned char shift = 8 - ( grp.nbits % 8 );
+        size_t i;
+
+        for( i = 0; i < rnd_info_A.length - 1; i++ )
+            rnd_buf_A->x[i] = rnd_buf_A->x[i] << shift
+                         | rnd_buf_A->x[i+1] >> ( 8 - shift );
+
+        rnd_buf_A->x[rnd_info_A.length-1] <<= shift;
+    }
+
+    rnd_info_B.buf = rnd_buf_B->x;
+    rnd_info_B.length = rnd_buf_B->len;
+
+    /* Fix rnd_buf_B->x by shifting it left if necessary */
+    if( grp.nbits % 8 != 0 )
+    {
+        unsigned char shift = 8 - ( grp.nbits % 8 );
+        size_t i;
+
+        for( i = 0; i < rnd_info_B.length - 1; i++ )
+            rnd_buf_B->x[i] = rnd_buf_B->x[i] << shift
+                         | rnd_buf_B->x[i+1] >> ( 8 - shift );
+
+        rnd_buf_B->x[rnd_info_B.length-1] <<= shift;
+    }
+
+    TEST_ASSERT( mbedtls_ecdh_gen_public( &grp, &dA, &qA,
+                                  rnd_buffer_rand, &rnd_info_A ) == 0 );
+    TEST_ASSERT( ! mbedtls_ecp_is_zero( &qA ) );
+    TEST_ASSERT( mbedtls_mpi_read_string( &check, 16, xA_str ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &qA.X, &check ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &check, 16, yA_str ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &qA.Y, &check ) == 0 );
+
+    TEST_ASSERT( mbedtls_ecdh_gen_public( &grp, &dB, &qB,
+                                  rnd_buffer_rand, &rnd_info_B ) == 0 );
+    TEST_ASSERT( ! mbedtls_ecp_is_zero( &qB ) );
+    TEST_ASSERT( mbedtls_mpi_read_string( &check, 16, xB_str ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &qB.X, &check ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &check, 16, yB_str ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &qB.Y, &check ) == 0 );
+
+    TEST_ASSERT( mbedtls_mpi_read_string( &check, 16, z_str ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_compute_shared( &grp, &zA, &qB, &dA, NULL, NULL ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &zA, &check ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_compute_shared( &grp, &zB, &qA, &dB, NULL, NULL ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &zB, &check ) == 0 );
+
+exit:
+    mbedtls_ecp_group_free( &grp );
+    mbedtls_ecp_point_free( &qA ); mbedtls_ecp_point_free( &qB );
+    mbedtls_mpi_free( &dA ); mbedtls_mpi_free( &dB );
+    mbedtls_mpi_free( &zA ); mbedtls_mpi_free( &zB ); mbedtls_mpi_free( &check );
+}
+
+void test_ecdh_primitive_testvec_wrapper( void ** params )
+{
+    data_t data1 = {(uint8_t *) params[1], *( (uint32_t *) params[2] )};
+    data_t data5 = {(uint8_t *) params[5], *( (uint32_t *) params[6] )};
+
+    test_ecdh_primitive_testvec( *( (int *) params[0] ), &data1, (char *) params[3], (char *) params[4], &data5, (char *) params[7], (char *) params[8], (char *) params[9] );
+}
+#line 303 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_exchange( int id )
+{
+    mbedtls_ecdh_context srv, cli;
+    unsigned char buf[1000];
+    const unsigned char *vbuf;
+    size_t len;
+    rnd_pseudo_info rnd_info;
+    unsigned char res_buf[1000];
+    size_t res_len;
+
+    mbedtls_ecdh_init( &srv );
+    mbedtls_ecdh_init( &cli );
+    memset( &rnd_info, 0x00, sizeof( rnd_pseudo_info ) );
+
+    TEST_ASSERT( mbedtls_ecdh_setup( &srv, id ) == 0 );
+
+    memset( buf, 0x00, sizeof( buf ) ); vbuf = buf;
+    TEST_ASSERT( mbedtls_ecdh_make_params( &srv, &len, buf, 1000,
+                                           &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_read_params( &cli, &vbuf, buf + len ) == 0 );
+
+    memset( buf, 0x00, sizeof( buf ) );
+    TEST_ASSERT( mbedtls_ecdh_make_public( &cli, &len, buf, 1000,
+                                           &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_read_public( &srv, buf, len ) == 0 );
+
+    TEST_ASSERT( mbedtls_ecdh_calc_secret( &srv, &len, buf, 1000,
+                                           &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_calc_secret( &cli, &res_len, res_buf, 1000,
+                                           NULL, NULL ) == 0 );
+    TEST_ASSERT( len == res_len );
+    TEST_ASSERT( memcmp( buf, res_buf, len ) == 0 );
+
+exit:
+    mbedtls_ecdh_free( &srv );
+    mbedtls_ecdh_free( &cli );
+}
+
+void test_ecdh_exchange_wrapper( void ** params )
+{
+
+    test_ecdh_exchange( *( (int *) params[0] ) );
+}
+#if defined(MBEDTLS_ECP_RESTARTABLE)
+#line 343 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_restart( int id, char *dA_str, char *dB_str, char *z_str,
+                   int enable, int max_ops, int min_restart, int max_restart )
 {
     int ret;
-    unsigned char *ikm = NULL;
-    unsigned char *salt = NULL;
-    unsigned char *prk = NULL;
-    unsigned char *output_prk = NULL;
-    size_t ikm_len, salt_len, prk_len, output_prk_len;
+    mbedtls_ecdh_context srv, cli;
+    unsigned char buf[1000];
+    const unsigned char *vbuf;
+    size_t len;
+    unsigned char z[MBEDTLS_ECP_MAX_BYTES];
+    size_t z_len;
+    unsigned char rnd_buf_A[MBEDTLS_ECP_MAX_BYTES];
+    unsigned char rnd_buf_B[MBEDTLS_ECP_MAX_BYTES];
+    rnd_buf_info rnd_info_A, rnd_info_B;
+    int cnt_restart;
+    mbedtls_ecp_group grp;
 
-    mbedtls_md_handle_t md = mbedtls_md_info_from_type( md_alg );
-    TEST_ASSERT( md != MBEDTLS_MD_INVALID_HANDLE );
+    mbedtls_ecp_group_init( &grp );
+    mbedtls_ecdh_init( &srv );
+    mbedtls_ecdh_init( &cli );
 
-    output_prk_len = mbedtls_md_get_size( md );
-    output_prk = mbedtls_calloc( 1, output_prk_len );
+    z_len = unhexify( z, z_str );
 
-    ikm = unhexify_alloc( hex_ikm_string, &ikm_len );
-    salt = unhexify_alloc( hex_salt_string, &salt_len );
-    prk = unhexify_alloc( hex_prk_string, &prk_len );
-    TEST_ASSERT( prk_len == output_prk_len );
+    rnd_info_A.buf = rnd_buf_A;
+    rnd_info_A.length = unhexify( rnd_buf_A, dA_str );
 
-    ret = mbedtls_hkdf_extract( md, salt, salt_len, ikm, ikm_len, output_prk );
+    rnd_info_B.buf = rnd_buf_B;
+    rnd_info_B.length = unhexify( rnd_buf_B, dB_str );
+
+    /* The ECDH context is not guaranteed ot have an mbedtls_ecp_group structure
+     * in every configuration, therefore we load it separately. */
+    TEST_ASSERT( mbedtls_ecp_group_load( &grp, id ) == 0 );
+
+    /* Otherwise we would have to fix the random buffer,
+     * as in ecdh_primitive_testvec. */
+    TEST_ASSERT( grp.nbits % 8 == 0 );
+
+    TEST_ASSERT( mbedtls_ecdh_setup( &srv, id ) == 0 );
+
+    /* set up restart parameters */
+    mbedtls_ecp_set_max_ops( max_ops );
+
+    if( enable )
+    {
+        mbedtls_ecdh_enable_restart( &srv );
+        mbedtls_ecdh_enable_restart( &cli );
+    }
+
+    /* server writes its parameters */
+    memset( buf, 0x00, sizeof( buf ) );
+    len = 0;
+
+    cnt_restart = 0;
+    do {
+        ret = mbedtls_ecdh_make_params( &srv, &len, buf, sizeof( buf ),
+                                        rnd_buffer_rand, &rnd_info_A );
+    } while( ret == MBEDTLS_ERR_ECP_IN_PROGRESS && ++cnt_restart );
+
     TEST_ASSERT( ret == 0 );
+    TEST_ASSERT( cnt_restart >= min_restart );
+    TEST_ASSERT( cnt_restart <= max_restart );
 
-    TEST_ASSERT( !memcmp( output_prk, prk, prk_len ) );
+    /* client read server params */
+    vbuf = buf;
+    TEST_ASSERT( mbedtls_ecdh_read_params( &cli, &vbuf, buf + len ) == 0 );
 
-exit:
-    mbedtls_free(ikm);
-    mbedtls_free(salt);
-    mbedtls_free(prk);
-    mbedtls_free(output_prk);
-}
+    /* client writes its key share */
+    memset( buf, 0x00, sizeof( buf ) );
+    len = 0;
 
-void test_test_hkdf_extract_wrapper( void ** params )
-{
+    cnt_restart = 0;
+    do {
+        ret = mbedtls_ecdh_make_public( &cli, &len, buf, sizeof( buf ),
+                                        rnd_buffer_rand, &rnd_info_B );
+    } while( ret == MBEDTLS_ERR_ECP_IN_PROGRESS && ++cnt_restart );
 
-    test_test_hkdf_extract( *( (int *) params[0] ), (char *) params[1], (char *) params[2], (char *) params[3] );
-}
-#line 81 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-void test_test_hkdf_expand( int md_alg, char *hex_info_string,
-                       char *hex_prk_string, char *hex_okm_string )
-{
-    enum { OKM_LEN  = 1024 };
-    int ret;
-    unsigned char *info = NULL;
-    unsigned char *prk = NULL;
-    unsigned char *okm = NULL;
-    unsigned char *output_okm = NULL;
-    size_t info_len, prk_len, okm_len;
-
-    mbedtls_md_handle_t md = mbedtls_md_info_from_type( md_alg );
-    TEST_ASSERT( md != MBEDTLS_MD_INVALID_HANDLE );
-
-    output_okm = mbedtls_calloc( OKM_LEN, 1 );
-
-    prk = unhexify_alloc( hex_prk_string, &prk_len );
-    info = unhexify_alloc( hex_info_string, &info_len );
-    okm = unhexify_alloc( hex_okm_string, &okm_len );
-    TEST_ASSERT( prk_len == mbedtls_md_get_size( md ) );
-    TEST_ASSERT( okm_len < OKM_LEN );
-
-    ret = mbedtls_hkdf_expand( md, prk, prk_len, info, info_len,
-                               output_okm, OKM_LEN );
     TEST_ASSERT( ret == 0 );
-    TEST_ASSERT( !memcmp( output_okm, okm, okm_len ) );
+    TEST_ASSERT( cnt_restart >= min_restart );
+    TEST_ASSERT( cnt_restart <= max_restart );
+
+    /* server reads client key share */
+    TEST_ASSERT( mbedtls_ecdh_read_public( &srv, buf, len ) == 0 );
+
+    /* server computes shared secret */
+    memset( buf, 0, sizeof( buf ) );
+    len = 0;
+
+    cnt_restart = 0;
+    do {
+        ret = mbedtls_ecdh_calc_secret( &srv, &len, buf, sizeof( buf ),
+                                              NULL, NULL );
+    } while( ret == MBEDTLS_ERR_ECP_IN_PROGRESS && ++cnt_restart );
+
+    TEST_ASSERT( ret == 0 );
+    TEST_ASSERT( cnt_restart >= min_restart );
+    TEST_ASSERT( cnt_restart <= max_restart );
+
+    TEST_ASSERT( len == z_len );
+    TEST_ASSERT( memcmp( buf, z, len ) == 0 );
+
+    /* client computes shared secret */
+    memset( buf, 0, sizeof( buf ) );
+    len = 0;
+
+    cnt_restart = 0;
+    do {
+        ret = mbedtls_ecdh_calc_secret( &cli, &len, buf, sizeof( buf ),
+                                              NULL, NULL );
+    } while( ret == MBEDTLS_ERR_ECP_IN_PROGRESS && ++cnt_restart );
+
+    TEST_ASSERT( ret == 0 );
+    TEST_ASSERT( cnt_restart >= min_restart );
+    TEST_ASSERT( cnt_restart <= max_restart );
+
+    TEST_ASSERT( len == z_len );
+    TEST_ASSERT( memcmp( buf, z, len ) == 0 );
 
 exit:
-    mbedtls_free(info);
-    mbedtls_free(prk);
-    mbedtls_free(okm);
-    mbedtls_free(output_okm);
+    mbedtls_ecp_group_free( &grp );
+    mbedtls_ecdh_free( &srv );
+    mbedtls_ecdh_free( &cli );
 }
 
-void test_test_hkdf_expand_wrapper( void ** params )
+void test_ecdh_restart_wrapper( void ** params )
 {
 
-    test_test_hkdf_expand( *( (int *) params[0] ), (char *) params[1], (char *) params[2], (char *) params[3] );
+    test_ecdh_restart( *( (int *) params[0] ), (char *) params[1], (char *) params[2], (char *) params[3], *( (int *) params[4] ), *( (int *) params[5] ), *( (int *) params[6] ), *( (int *) params[7] ) );
 }
-#if !defined(MBEDTLS_MD_SINGLE_HASH)
-#line 117 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-void test_test_hkdf_extract_ret( int hash_len, int ret )
+#endif /* MBEDTLS_ECP_RESTARTABLE */
+#if defined(MBEDTLS_ECDH_LEGACY_CONTEXT)
+#line 467 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_exchange_legacy( int id )
 {
-    int output_ret;
-    unsigned char *salt = NULL;
-    unsigned char *ikm = NULL;
-    unsigned char *prk = NULL;
-    size_t salt_len, ikm_len;
-    struct mbedtls_md_info_t fake_md_info;
+    mbedtls_ecdh_context srv, cli;
+    unsigned char buf[1000];
+    const unsigned char *vbuf;
+    size_t len;
 
-    memset( &fake_md_info, 0, sizeof( fake_md_info ) );
-    fake_md_info.type = MBEDTLS_MD_NONE;
-    fake_md_info.size = hash_len;
+    rnd_pseudo_info rnd_info;
 
-    prk = mbedtls_calloc( MBEDTLS_MD_MAX_SIZE, 1 );
-    salt_len = 0;
-    ikm_len = 0;
+    mbedtls_ecdh_init( &srv );
+    mbedtls_ecdh_init( &cli );
+    memset( &rnd_info, 0x00, sizeof( rnd_pseudo_info ) );
 
-    output_ret = mbedtls_hkdf_extract( &fake_md_info, salt, salt_len,
-                                       ikm, ikm_len, prk );
-    TEST_ASSERT( output_ret == ret );
+    TEST_ASSERT( mbedtls_ecp_group_load( &srv.grp, id ) == 0 );
+
+    memset( buf, 0x00, sizeof( buf ) ); vbuf = buf;
+    TEST_ASSERT( mbedtls_ecdh_make_params( &srv, &len, buf, 1000,
+                                   &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_read_params( &cli, &vbuf, buf + len ) == 0 );
+
+    memset( buf, 0x00, sizeof( buf ) );
+    TEST_ASSERT( mbedtls_ecdh_make_public( &cli, &len, buf, 1000,
+                                           &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_read_public( &srv, buf, len ) == 0 );
+
+    TEST_ASSERT( mbedtls_ecdh_calc_secret( &srv, &len, buf, 1000,
+                                           &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( mbedtls_ecdh_calc_secret( &cli, &len, buf, 1000, NULL,
+                                           NULL ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &srv.z, &cli.z ) == 0 );
 
 exit:
-    mbedtls_free(prk);
+    mbedtls_ecdh_free( &srv );
+    mbedtls_ecdh_free( &cli );
 }
 
-void test_test_hkdf_extract_ret_wrapper( void ** params )
+void test_ecdh_exchange_legacy_wrapper( void ** params )
 {
 
-    test_test_hkdf_extract_ret( *( (int *) params[0] ), *( (int *) params[1] ) );
+    test_ecdh_exchange_legacy( *( (int *) params[0] ) );
 }
-#endif /* !MBEDTLS_MD_SINGLE_HASH */
-#if !defined(MBEDTLS_MD_SINGLE_HASH)
-#line 144 "/home/mp600/mbedtls/tests/suites/test_suite_hkdf.function"
-void test_test_hkdf_expand_ret( int hash_len, int prk_len, int okm_len, int ret )
+#endif /* MBEDTLS_ECDH_LEGACY_CONTEXT */
+#line 505 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_exchange_calc_secret( int grp_id,
+                                data_t *our_private_key,
+                                data_t *their_point,
+                                int ours_first,
+                                data_t *expected )
 {
-    int output_ret;
-    unsigned char *info = NULL;
-    unsigned char *prk = NULL;
-    unsigned char *okm = NULL;
-    size_t info_len;
-    struct mbedtls_md_info_t fake_md_info;
+    rnd_pseudo_info rnd_info;
+    mbedtls_ecp_keypair our_key;
+    mbedtls_ecp_keypair their_key;
+    mbedtls_ecdh_context ecdh;
+    unsigned char shared_secret[MBEDTLS_ECP_MAX_BYTES];
+    size_t shared_secret_length = 0;
 
-    memset( &fake_md_info, 0, sizeof( fake_md_info ) );
-    fake_md_info.type = MBEDTLS_MD_NONE;
-    fake_md_info.size = hash_len;
+    memset( &rnd_info, 0x00, sizeof( rnd_pseudo_info ) );
+    mbedtls_ecdh_init( &ecdh );
+    mbedtls_ecp_keypair_init( &our_key );
+    mbedtls_ecp_keypair_init( &their_key );
 
-    info_len = 0;
+    if( ! load_private_key( grp_id, our_private_key, &our_key, &rnd_info ) )
+        goto exit;
+    if( ! load_public_key( grp_id, their_point, &their_key ) )
+        goto exit;
 
-    if (prk_len > 0)
-        prk = mbedtls_calloc( prk_len, 1 );
+    /* Import the keys to the ECDH calculation. */
+    if( ours_first )
+    {
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &our_key, MBEDTLS_ECDH_OURS ) == 0 );
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &their_key, MBEDTLS_ECDH_THEIRS ) == 0 );
+    }
+    else
+    {
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &their_key, MBEDTLS_ECDH_THEIRS ) == 0 );
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &our_key, MBEDTLS_ECDH_OURS ) == 0 );
+    }
 
-    if (okm_len > 0)
-        okm = mbedtls_calloc( okm_len, 1 );
-
-    output_ret = mbedtls_hkdf_expand( &fake_md_info, prk, prk_len,
-                                      info, info_len, okm, okm_len );
-    TEST_ASSERT( output_ret == ret );
+    /* Perform the ECDH calculation. */
+    TEST_ASSERT( mbedtls_ecdh_calc_secret(
+                     &ecdh,
+                     &shared_secret_length,
+                     shared_secret, sizeof( shared_secret ),
+                     &rnd_pseudo_rand, &rnd_info ) == 0 );
+    TEST_ASSERT( shared_secret_length == expected->len );
+    TEST_ASSERT( memcmp( expected->x, shared_secret,
+                         shared_secret_length ) == 0 );
 
 exit:
-    mbedtls_free(prk);
-    mbedtls_free(okm);
+    mbedtls_ecdh_free( &ecdh );
+    mbedtls_ecp_keypair_free( &our_key );
+    mbedtls_ecp_keypair_free( &their_key );
 }
 
-void test_test_hkdf_expand_ret_wrapper( void ** params )
+void test_ecdh_exchange_calc_secret_wrapper( void ** params )
 {
+    data_t data1 = {(uint8_t *) params[1], *( (uint32_t *) params[2] )};
+    data_t data3 = {(uint8_t *) params[3], *( (uint32_t *) params[4] )};
+    data_t data6 = {(uint8_t *) params[6], *( (uint32_t *) params[7] )};
 
-    test_test_hkdf_expand_ret( *( (int *) params[0] ), *( (int *) params[1] ), *( (int *) params[2] ), *( (int *) params[3] ) );
+    test_ecdh_exchange_calc_secret( *( (int *) params[0] ), &data1, &data3, *( (int *) params[5] ), &data6 );
 }
-#endif /* !MBEDTLS_MD_SINGLE_HASH */
-#endif /* MBEDTLS_HKDF_C */
+#line 562 "/home/mp600/mbedtls/tests/suites/test_suite_ecdh.function"
+void test_ecdh_exchange_get_params_fail( int our_grp_id,
+                                    data_t *our_private_key,
+                                    int their_grp_id,
+                                    data_t *their_point,
+                                    int ours_first,
+                                    int expected_ret )
+{
+    rnd_pseudo_info rnd_info;
+    mbedtls_ecp_keypair our_key;
+    mbedtls_ecp_keypair their_key;
+    mbedtls_ecdh_context ecdh;
+
+    memset( &rnd_info, 0x00, sizeof( rnd_pseudo_info ) );
+    mbedtls_ecdh_init( &ecdh );
+    mbedtls_ecp_keypair_init( &our_key );
+    mbedtls_ecp_keypair_init( &their_key );
+
+    if( ! load_private_key( our_grp_id, our_private_key, &our_key, &rnd_info ) )
+        goto exit;
+    if( ! load_public_key( their_grp_id, their_point, &their_key ) )
+        goto exit;
+
+    if( ours_first )
+    {
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &our_key, MBEDTLS_ECDH_OURS ) == 0 );
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &their_key, MBEDTLS_ECDH_THEIRS ) ==
+                     expected_ret );
+    }
+    else
+    {
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &their_key, MBEDTLS_ECDH_THEIRS ) == 0 );
+        TEST_ASSERT( mbedtls_ecdh_get_params(
+                         &ecdh, &our_key, MBEDTLS_ECDH_OURS ) ==
+                     expected_ret );
+    }
+
+exit:
+    mbedtls_ecdh_free( &ecdh );
+    mbedtls_ecp_keypair_free( &our_key );
+    mbedtls_ecp_keypair_free( &their_key );
+}
+
+void test_ecdh_exchange_get_params_fail_wrapper( void ** params )
+{
+    data_t data1 = {(uint8_t *) params[1], *( (uint32_t *) params[2] )};
+    data_t data4 = {(uint8_t *) params[4], *( (uint32_t *) params[5] )};
+
+    test_ecdh_exchange_get_params_fail( *( (int *) params[0] ), &data1, *( (int *) params[3] ), &data4, *( (int *) params[6] ), *( (int *) params[7] ) );
+}
+#endif /* MBEDTLS_ECDH_C */
 
 
 #line 52 "suites/main_test.function"
@@ -1015,11 +1477,41 @@ int get_expression( int32_t exp_id, int32_t * out_value )
     switch( exp_id )
     {
 
-#if defined(MBEDTLS_HKDF_C)
+#if defined(MBEDTLS_ECDH_C)
 
         case 0:
             {
-                *out_value = MBEDTLS_ERR_HKDF_BAD_INPUT_DATA;
+                *out_value = MBEDTLS_ECP_DP_SECP192R1;
+            }
+            break;
+        case 1:
+            {
+                *out_value = MBEDTLS_ECP_DP_SECP224R1;
+            }
+            break;
+        case 2:
+            {
+                *out_value = MBEDTLS_ECP_DP_SECP256R1;
+            }
+            break;
+        case 3:
+            {
+                *out_value = MBEDTLS_ECP_DP_SECP384R1;
+            }
+            break;
+        case 4:
+            {
+                *out_value = MBEDTLS_ECP_DP_SECP521R1;
+            }
+            break;
+        case 5:
+            {
+                *out_value = MBEDTLS_ECP_DP_BP256R1;
+            }
+            break;
+        case 6:
+            {
+                *out_value = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
             }
             break;
 #endif
@@ -1055,11 +1547,11 @@ int dep_check( int dep_id )
     switch( dep_id )
     {
 
-#if defined(MBEDTLS_HKDF_C)
+#if defined(MBEDTLS_ECDH_C)
 
         case 0:
             {
-#if defined(MBEDTLS_SHA256_C)
+#if defined(MBEDTLS_ECP_DP_SECP192R1_ENABLED)
                 ret = DEPENDENCY_SUPPORTED;
 #else
                 ret = DEPENDENCY_NOT_SUPPORTED;
@@ -1068,7 +1560,43 @@ int dep_check( int dep_id )
             break;
         case 1:
             {
-#if defined(MBEDTLS_SHA1_C)
+#if defined(MBEDTLS_ECP_DP_SECP224R1_ENABLED)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 2:
+            {
+#if defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 3:
+            {
+#if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 4:
+            {
+#if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 5:
+            {
+#if defined(MBEDTLS_ECP_DP_BP256R1_ENABLED)
                 ret = DEPENDENCY_SUPPORTED;
 #else
                 ret = DEPENDENCY_NOT_SUPPORTED;
@@ -1107,36 +1635,64 @@ TestWrapper_t test_funcs[] =
 {
 /* Function Id: 0 */
 
-#if defined(MBEDTLS_HKDF_C)
-    test_test_hkdf_wrapper,
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_valid_param_wrapper,
 #else
     NULL,
 #endif
 /* Function Id: 1 */
 
-#if defined(MBEDTLS_HKDF_C)
-    test_test_hkdf_extract_wrapper,
+#if defined(MBEDTLS_ECDH_C) && defined(MBEDTLS_CHECK_PARAMS) && !defined(MBEDTLS_PARAM_FAILED_ALT)
+    test_ecdh_invalid_param_wrapper,
 #else
     NULL,
 #endif
 /* Function Id: 2 */
 
-#if defined(MBEDTLS_HKDF_C)
-    test_test_hkdf_expand_wrapper,
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_primitive_random_wrapper,
 #else
     NULL,
 #endif
 /* Function Id: 3 */
 
-#if defined(MBEDTLS_HKDF_C) && !defined(MBEDTLS_MD_SINGLE_HASH)
-    test_test_hkdf_extract_ret_wrapper,
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_primitive_testvec_wrapper,
 #else
     NULL,
 #endif
 /* Function Id: 4 */
 
-#if defined(MBEDTLS_HKDF_C) && !defined(MBEDTLS_MD_SINGLE_HASH)
-    test_test_hkdf_expand_ret_wrapper,
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_exchange_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 5 */
+
+#if defined(MBEDTLS_ECDH_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    test_ecdh_restart_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 6 */
+
+#if defined(MBEDTLS_ECDH_C) && defined(MBEDTLS_ECDH_LEGACY_CONTEXT)
+    test_ecdh_exchange_legacy_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 7 */
+
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_exchange_calc_secret_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 8 */
+
+#if defined(MBEDTLS_ECDH_C)
+    test_ecdh_exchange_get_params_fail_wrapper,
 #else
     NULL,
 #endif
@@ -1619,7 +2175,7 @@ static int run_test_snprintf( void )
 int execute_tests( int argc , const char ** argv )
 {
     /* Local Configurations and options */
-    const char *default_filename = "./test_suite_hkdf.datax";
+    const char *default_filename = "./test_suite_ecdh.datax";
     const char *test_filename = NULL;
     const char **test_files = NULL;
     size_t testfile_count = 0;
